@@ -1,0 +1,27 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "${{ matrix.python }}"}
+      - run: pip install -e ".[dashboard,dev]"
+      - run: ruff check .
+      - run: pytest -q
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t stockwise .
+      - name: Smoke test (simulated demo)
+        run: |
+          docker run -d --name sw -p 8000:8000 stockwise
+          for i in $(seq 1 60); do curl -sf localhost:8000/health && break; sleep 3; done
+          curl -sf localhost:8000/summary | grep -q SIMULATED
+          docker logs sw | tail -5

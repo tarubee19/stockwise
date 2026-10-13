@@ -1,0 +1,67 @@
+{
+  "dataset": "real",
+  "n_series": 12635,
+  "n_days": 1941,
+  "protection_days": 3,
+  "lead_time_days": 2,
+  "validation_period": [
+    "2015-04-26",
+    "2015-08-23"
+  ],
+  "test_period": [
+    "2015-08-24",
+    "2016-05-19"
+  ],
+  "chosen_service_level": {
+    "lgbm_nb": 0.9,
+    "lgbm_qr": 0.8,
+    "ma_z": 0.9
+  },
+  "chosen_service_level_by_abc": {
+    "A": 0.9,
+    "B": 0.8,
+    "C": 0.7
+  },
+  "best_forecast_by_wape": "lgbm",
+  "policies": {
+    "lgbm_nb": {
+      "fill_rate": 0.9255415862036749,
+      "avg_inventory": 4.361159168480412,
+      "total_cost": 1577579.3719238618,
+      "cost_pct_revenue": 0.10233112026263531,
+      "cost_reduction_pct": 14.7649148345542,
+      "cost_reduction_pct_lo": 14.034101820287429,
+      "cost_reduction_pct_hi": 15.526082768005155
+    },
+    "lgbm_qr": {
+      "fill_rate": 0.8877728714816988,
+      "avg_inventory": 3.320247885338346,
+      "total_cost": 1753525.3735614158,
+      "cost_pct_revenue": 0.11850318497038047,
+      "cost_reduction_pct": 5.258722815950412,
+      "cost_reduction_pct_lo": 4.6535095299799885,
+      "cost_reduction_pct_hi": 5.873054899259645
+    },
+    "ma_z": {
+      "fill_rate": 0.9049090144678991,
+      "avg_inventory": 4.13345246339533,
+      "total_cost": 1850856.8025264442,
+      "cost_pct_revenue": 0.12282124601301024
+    },
+    "lgbm_qr_abc": {
+      "fill_rate": 0.9118393226302709,
+      "avg_inventory": 3.9637626137712703,
+      "total_cost": 1651442.0391165388,
+      "cost_pct_revenue": 0.10820994594659902,
+      "cost_reduction_pct": 10.774186481509618,
+      "cost_reduction_pct_lo": 10.102696870819983,
+      "cost_reduction_pct_hi": 11.438646001652659
+    }
+  },
+  "inventory_vs_baseline_at_95pct_fill": {
+    "lgbm_nb": -7.089669186979064,
+    "lgbm_qr": -10.451309281073762,
+    "ma_z": 0.0
+  },
+  "runtime_seconds": 1479.4
+}

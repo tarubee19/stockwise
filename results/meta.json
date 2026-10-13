@@ -1,0 +1,57 @@
+{
+  "config": {
+    "lead_time": 2,
+    "review_period": 1,
+    "val_days": 120,
+    "test_days": 270,
+    "min_history": 365,
+    "min_mean_demand": 0.05,
+    "train_window": 540,
+    "train_stride": 3,
+    "quantiles": [
+      0.7,
+      0.8,
+      0.9,
+      0.95,
+      0.98,
+      0.99
+    ],
+    "n_estimators": 300,
+    "learning_rate": 0.05,
+    "num_leaves": 63,
+    "min_data_in_leaf": 100,
+    "n_jobs": 2,
+    "seed": 42,
+    "bootstrap_draws": 1000,
+    "cost": {
+      "margin": 0.25,
+      "holding_rate": 0.25,
+      "shelf_life_days": 7,
+      "stockout_mult": 2.0,
+      "warmup_days": 14
+    }
+  },
+  "dataset": "real",
+  "series_filter": {
+    "n_foods_series": 14370,
+    "n_listed_whole_history": 12888,
+    "n_dropped_not_listed": 1482,
+    "n_dropped_low_demand": 253,
+    "n_kept": 12635,
+    "history_start_day": 1186,
+    "n_days": 1941
+  },
+  "policy_labels": {
+    "ma_z": "Moving average + safety stock",
+    "lgbm_nb": "LightGBM mean + NegBin safety stock",
+    "lgbm_qr": "LightGBM quantile",
+    "lgbm_qr_abc": "LightGBM quantile, service level per ABC class"
+  },
+  "versions": {
+    "python": "3.13.16",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "scipy": "1.18.1",
+    "lightgbm": "4.7.0"
+  }
+}
