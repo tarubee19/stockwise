@@ -89,6 +89,35 @@ n/a: that fill rate is outside the policy's tested range.
 Runtime 1479s. Costs are assumptions (margin 25%, holding 25%/yr, shelf life 7 d, stock-out penalty 2.0x lost margin); read the relative results.
 <!-- RESULTS:END -->
 
+## What the results tell a manager
+
+Numbers below are read from `results/` (M5 FOODS, test period, assumed costs).
+
+1. **Where the money goes.** With a 7-day shelf life, waste (about 55-60% of cost) and lost sales
+   (about 40-45%) dominate; holding cost is about 1%. Cutting inventory per se is the wrong goal.
+   The lever is ordering the right amount, and shelf life matters far more than the cost of capital
+   (sensitivity: holding 10% to 40% per year barely moves the ranking; shelf life 3 to 30 days does).
+2. **The gain is better allocation, not more stock.** The negative-binomial LightGBM policy has the
+   same holding cost as the baseline, cuts waste cost by about 94k and lost-margin cost by about
+   180k (price units), and serves 2.1 points more demand. It does this by sending stock where demand
+   will be and away from where it will not.
+3. **Calibration explains the ranking.** Targets of 90% and 95% give actual coverage of 91.6% and
+   95.1% for the negative-binomial policy, but 94.2% and 97.0% for the direct quantile model (too
+   conservative) and 91.1% and 93.4% for the moving average (too thin in the tail). A model is only
+   as useful as its stated service level is true. The quantile model would need recalibration
+   before its labels could be trusted.
+4. **Policy cost is U-shaped in service level, and flat near the best.** For the negative-binomial
+   policy, cost is lowest at the 90% target. Below it lost sales grow faster than waste falls; above it waste
+   grows faster than lost sales fall. Pushing to 98-99% costs more than even the moving-average
+   baseline at its best level.
+5. **Focus on class A.** Class A items (top 80% of revenue) are about 55% of total cost, and the
+   per-class policy cuts their cost by about 13%, against 6% for class B and 10% for class C.
+   Smooth-demand items gain most (about 29% lower cost for the negative-binomial policy); the
+   method adds least where demand is lumpy.
+6. **What this does not show.** It is a simulation on US Walmart sales with assumed costs, not a
+   pilot. Real savings depend on lead-time variability, supplier constraints, and censored sales
+   (empty shelves hide demand).
+
 ## Quick start
 
 ```bash
