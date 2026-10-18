@@ -159,7 +159,7 @@ With an empty `results/` the container generates a SIMULATED demo so it still st
 future sales leaves features unchanged), costs, policies, bootstrap, pipeline determinism, API,
 dashboard. `ruff check .` is clean.
 
-## Honest limitations
+## Limitations
 
 - M5 is US Walmart; findings do not transfer to Indian dark stores without re-running on local data.
 - No stock data: sales understate demand when shelves were empty.
