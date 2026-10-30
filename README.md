@@ -22,6 +22,8 @@ each needs for the same service.
 3. **Models (global LightGBM, one model for all series):** a Tweedie mean model and quantile models
    (70/80/90/95/98/99%). Features use only information up to the order day, plus known future price
    and calendar. Walk-forward: models are refit with data only up to each evaluation period.
+   Why LightGBM, why these settings, and how it compares with XGBoost, CatBoost, ridge, ETS/Croston/TSB and the
+   Chronos-Bolt foundation model: see [the model comparison](#is-lightgbm-the-right-model-and-are-its-settings-justified).
 4. **Policies:** baseline = 28-day moving average + normal safety stock; LightGBM mean + negative
    binomial safety stock; LightGBM quantile; quantile with a service level per ABC class.
 5. **Simulation:** daily arrivals, FIFO sales, shelf-life waste, holding cost, daily orders to the
@@ -88,6 +90,72 @@ n/a: that fill rate is outside the policy's tested range.
 
 Runtime 1479s. Costs are assumptions (margin 25%, holding 25%/yr, shelf life 7 d, stock-out penalty 2.0x lost margin); read the relative results.
 <!-- RESULTS:END -->
+
+## Is LightGBM the right model, and are its settings justified?
+
+The main study uses one global LightGBM (Tweedie) with fixed settings. `scripts/model_comparison.py` checks that
+choice against the alternatives an interviewer would ask about, on the **same features, target (3-day demand) and
+walk-forward origins**, using a stratified 3,002-series sample of M5 FOODS. It runs in GitHub Actions
+(`.github/workflows/model-comparison.yml`, ~24 min) and writes `results/model_comparison/`.
+
+![Model comparison](results/figures/fig_model_comparison.png)
+
+**1. Settings were chosen on the validation period only** (Apr-Aug 2015; the test period is never used to pick them):
+
+| Setting | Validation WAPE | Fit time |
+|---|---|---|
+| **Shipped: 63 leaves, lr 0.05 x 300 rounds, min_data_in_leaf 100, Tweedie 1.2** | **0.4247** | 15 s |
+| 255 leaves | 0.4212 (best) | 24 s |
+| lr 0.05 x 600 rounds | 0.4223 | 27 s |
+| lr 0.025 x 600 rounds | 0.4243 | 29 s |
+| 15 leaves | 0.4319 | 10 s |
+| min_data_in_leaf 20 / 500 | 0.4250 / 0.4254 | 14 / 17 s |
+| Tweedie power 1.1 / 1.5 | 0.4254 / 0.4255 | 15 / 13 s |
+| Poisson objective | 0.4284 | 16 s |
+| L2 (MSE) objective | 0.4338 | 16 s |
+
+The shipped settings are within 0.35 WAPE points of the best of 11 alternatives. The best one (255 leaves) costs
+1.6x the fit time and has a larger under-forecasting bias (-3.4% vs -2.2%), which matters more for stock than
+WAPE does. **The objective is the setting that matters:** Tweedie beats Poisson by 0.4 points and squared error by
+0.9 points, because demand is intermittent, non-negative and right-skewed.
+
+**2. Other global models on the test period** (3,002 series x 270 daily origins = 810,540 forecasts; the interval is a
+series-bootstrap 95% CI of the WAPE difference vs LightGBM, positive = worse):
+
+| Model | WAPE | Bias | RMSSE | vs LightGBM | Fit + predict |
+|---|---|---|---|---|---|
+| XGBoost (Tweedie) | 0.4149 | -2.7% | 0.804 | -0.08 pts [-0.16, +0.01]: a tie | 14 s |
+| **LightGBM Tweedie (shipped)** | **0.4157** | -2.3% | 0.805 | - | 17 s |
+| LightGBM Poisson | 0.4192 | -1.7% | 0.807 | +0.35 [+0.30, +0.41] | 19 s |
+| CatBoost (Tweedie) | 0.4241 | -2.0% | 0.816 | +0.84 [+0.76, +0.92] | 133 s |
+| LightGBM L2 | 0.4245 | -1.5% | 0.817 | +0.90 [+0.78, +1.01] | 20 s |
+| Ridge on the same 40 features | 0.4500 | -1.7% | 0.875 | +3.4 [+3.2, +3.6] | 1 s |
+| Moving average 28 d (baseline) | 0.4701 | -0.8% | 0.865 | +5.5 [+5.0, +5.9] | - |
+
+The gain is not "any model with these features": a linear model on the same features gives up 3.4 points, so the
+non-linear interactions (price x promotion x weekday x store) are doing real work. XGBoost is statistically
+indistinguishable from LightGBM, and CatBoost is worse and 8x slower, so swapping libraries buys nothing.
+
+**3. Per-series statistical models and a time-series foundation model** (they are fitted per series and per origin,
+so they run on 500 random series x 39 weekly test origins; all methods are scored on exactly those cells):
+
+| Model | WAPE | Bias |
+|---|---|---|
+| **LightGBM Tweedie (shipped)** | **0.456** | -2.7% |
+| Chronos-Bolt-small (Amazon, zero-shot) | 0.483 | **-25.0%** |
+| AutoETS | 0.488 | +4.2% |
+| IMAPA | 0.509 | +14.0% |
+| TSB | 0.525 | +15.1% |
+| Croston (optimised) | 0.618 | +23.5% |
+
+The pretrained foundation model, with no training on this data, is the strongest non-LightGBM method by WAPE.
+But it under-forecasts 3-day demand by a quarter, because its point forecast tends towards the typical
+(often zero) day of an intermittent series. Fed into an order-up-to policy, that bias would mean empty shelves,
+so it would need fine-tuning or a bias correction before use. The classic intermittent-demand methods (Croston,
+TSB, IMAPA) over-forecast heavily on these daily 3-day windows.
+
+**Decision:** keep LightGBM Tweedie with the shipped settings. The evidence for each part is above, and the one
+change worth trying next is 255 leaves / 600 rounds (+0.3 WAPE points on validation, at roughly 2x training cost).
 
 ## What the results tell a manager
 
