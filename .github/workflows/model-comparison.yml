@@ -1,0 +1,46 @@
+name: Forecast model comparison
+
+# Tuning on validation, more global models, statistical models and Chronos-Bolt on M5 FOODS
+# (scripts/model_comparison.py, 3,000-series stratified sample). Commits results/model_comparison/.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["scripts/model_comparison.py", ".github/workflows/model-comparison.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e . xgboost catboost statsforecast chronos-forecasting
+      - name: Download M5 (public mirrors of the Kaggle competition files)
+        run: |
+          pip install gdown
+          mkdir -p m5 && cd m5
+          # 1) Nixtla's mirror (used by datasetsforecast), 2) the Google Drive copy used by the Temporian M5 tutorial
+          (wget -q https://github.com/Nixtla/m5-forecasts/raw/main/datasets/m5.zip -O m5.zip && unzip -q -o m5.zip) || \
+          (gdown -q 1NYHXmgrcXg50zR4CVWPPntHx9vvU5jbM -O raw.zip && unzip -q -o raw.zip)
+          find . -name "*.csv" | head
+      - name: Trim to FOODS
+        run: python scripts/prepare_m5_upload.py "$(dirname $(find m5 -name calendar.csv | head -1))" --out m5_foods.zip
+      - name: Compare
+        run: python scripts/model_comparison.py --data m5_foods.zip --out results/model_comparison --series 3000 --local-series 500
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/model_comparison
+          if git diff --cached --quiet; then echo "Nothing changed."; exit 0; fi
+          git commit -m "results: forecast model comparison"
+          for i in 1 2 3; do git pull --rebase && git push && break; sleep 5; done
